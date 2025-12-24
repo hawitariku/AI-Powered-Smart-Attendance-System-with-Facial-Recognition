@@ -4,6 +4,21 @@ import cv2
 from facenet_pytorch import InceptionResnetV1, MTCNN
 
 
+def preprocess_frame(frame):
+    """Preprocess frame to enhance quality"""
+    # Apply histogram equalization for better contrast
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    equalized = cv2.equalizeHist(gray)
+    
+    # Convert back to 3-channel
+    enhanced = cv2.cvtColor(equalized, cv2.COLOR_GRAY2BGR)
+    
+    # Apply Gaussian blur to reduce noise
+    enhanced = cv2.GaussianBlur(enhanced, (3, 3), 0)
+    
+    return enhanced
+
+
 # Load Haar cascade for face detection
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 mtcnn = MTCNN(image_size=160, margin=20)
@@ -11,8 +26,11 @@ model = InceptionResnetV1(pretrained='vggface2').eval()
 
 
 def get_embedding(frame):
+    # Preprocess frame for better quality
+    processed_frame = preprocess_frame(frame)
+    
     # Convert to grayscale for face detection
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(processed_frame, cv2.COLOR_BGR2GRAY)
     
     # Detect faces using OpenCV
     faces = face_cascade.detectMultiScale(
@@ -30,7 +48,7 @@ def get_embedding(frame):
     (x, y, w, h) = faces[0]
     
     # Extract face region
-    face_region = frame[y:y+h, x:x+w]
+    face_region = processed_frame[y:y+h, x:x+w]
     
     # Resize to the size expected by FaceNet
     face_region_resized = cv2.resize(face_region, (160, 160))

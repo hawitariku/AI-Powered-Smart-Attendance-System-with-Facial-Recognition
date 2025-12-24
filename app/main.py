@@ -68,9 +68,9 @@ def enroll_face(user_id: int):
     import time
     time.sleep(2)
     
-    # Try multiple frames to detect face
-    emb = None
-    for i in range(30):  # Try for 30 frames
+    # Try multiple frames to get multiple samples
+    embeddings = []
+    for attempt in range(30):  # Try for 30 frames
         ret, frame = cap.read()
         if not ret:
             continue
@@ -83,7 +83,10 @@ def enroll_face(user_id: int):
                 from app.face_utils import get_embedding
                 emb = get_embedding(frame)
                 if emb is not None:
-                    break
+                    embeddings.append(emb)
+                    # Only need 3 good samples
+                    if len(embeddings) >= 3:
+                        break
         except Exception as e:
             pass  # Continue trying
             
@@ -91,13 +94,19 @@ def enroll_face(user_id: int):
     
     cap.release()
     
-    if emb is None:
+    if len(embeddings) == 0:
         return {"error": "No face detected after multiple attempts"}
+    
+    # Use average of embeddings if multiple were captured
+    if len(embeddings) > 1:
+        final_embedding = np.mean(embeddings, axis=0)
+    else:
+        final_embedding = embeddings[0]
     
     db = SessionLocal()
     
     # Save embedding
-    record = FaceEmbedding(user_id=user_id, embedding=','.join(map(str, emb.tolist())))
+    record = FaceEmbedding(user_id=user_id, embedding=','.join(map(str, final_embedding.tolist())))
     db.add(record)
     
     # Automatically mark attendance when face is enrolled
@@ -110,7 +119,7 @@ def enroll_face(user_id: int):
     db.commit()
     db.close()
     
-    return {"message": "Face enrolled and attendance marked"}
+    return {"message": f"Face enrolled successfully with {len(embeddings)} sample(s) and attendance marked"}
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
