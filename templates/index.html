@@ -76,16 +76,39 @@
         .nav a:hover {
             background-color: #218838;
         }
+        .login-section {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+        .login-section input {
+            width: 200px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1> facial recognition attendance system</h1>
         
+        <div class="login-section">
+            <h2>Login</h2>
+            <form id="loginForm">
+                <input type="text" id="loginEmail" placeholder="Email" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+            <div id="loginResult" class="result"></div>
+        </div>
+        
         <div class="section">
             <h2>Register New User</h2>
             <form id="registerForm">
                 <input type="text" id="userName" placeholder="Enter user name" required>
+                <input type="email" id="userEmail" placeholder="Enter user email" required>
+                <input type="password" id="userPassword" placeholder="Enter password" required>
                 <button type="submit">Register User</button>
             </form>
             <div id="registerResult" class="result"></div>
@@ -114,16 +137,76 @@
     </div>
 
     <script>
+        let authToken = null;
+        
+        // Login functionality
+        document.getElementById('loginForm').onsubmit = function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            const formData = new FormData();
+            formData.append('username', email);
+            formData.append('password', password);
+            
+            fetch('/token', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.access_token) {
+                    authToken = data.access_token;
+                    localStorage.setItem('authToken', authToken);
+                    const resultDiv = document.getElementById('loginResult');
+                    resultDiv.style.display = 'block';
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = '<strong>Success:</strong> Login successful!';
+                } else {
+                    throw new Error(data.detail || 'Login failed');
+                }
+            })
+            .catch(error => {
+                const resultDiv = document.getElementById('loginResult');
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '<strong>Error:</strong> ' + error;
+            });
+        };
+
+        // Load token from localStorage if available
+        window.onload = function() {
+            authToken = localStorage.getItem('authToken');
+            if (authToken) {
+                const resultDiv = document.getElementById('loginResult');
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = '<strong>Success:</strong> You are logged in!';
+            }
+        };
+
         document.getElementById('registerForm').onsubmit = function(e) {
             e.preventDefault();
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+            
             const name = document.getElementById('userName').value;
+            const email = document.getElementById('userEmail').value;
+            const password = document.getElementById('userPassword').value;
+            
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('email', email);
+            formData.append('password', password);
             
             fetch('/register', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization': 'Bearer ' + authToken
                 },
-                body: 'name=' + encodeURIComponent(name)
+                body: formData
             })
             .then(response => response.json())
             .then(data => {
@@ -142,10 +225,18 @@
 
         document.getElementById('enrollForm').onsubmit = function(e) {
             e.preventDefault();
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+            
             const userId = document.getElementById('userId').value;
             
             fetch('/enroll/' + userId, {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + authToken
+                }
             })
             .then(response => response.json())
             .then(data => {
@@ -163,8 +254,16 @@
         };
 
         function startAttendance() {
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+            
             fetch('/start_attendance', {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + authToken
+                }
             })
             .then(response => response.json())
             .then(data => {
@@ -183,8 +282,16 @@
         }
         
         function stopAttendance() {
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+            
             fetch('/stop_attendance', {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + authToken
+                }
             })
             .then(response => response.json())
             .then(data => {

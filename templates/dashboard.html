@@ -64,10 +64,28 @@
         .nav a:hover {
             background-color: #0056b3;
         }
+        .logout-section {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="logout-section">
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
         <h1> Attendance Dashboard</h1>
         
         <div class="section">
@@ -76,11 +94,15 @@
                 <tr>
                     <th>User ID</th>
                     <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
                 </tr>
                 {% for user in users %}
                 <tr>
                     <td>{{ user.id }}</td>
                     <td>{{ user.name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.role }}</td>
                 </tr>
                 {% endfor %}
             </table>
@@ -110,5 +132,21 @@
             <a href="/">Back to Main Page</a>
         </div>
     </div>
+    
+    <script>
+        function logout() {
+            localStorage.removeItem('authToken');
+            window.location.href = '/';
+        }
+        
+        // Check if user is logged in
+        window.onload = function() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                alert('Please login first');
+                window.location.href = '/';
+            }
+        };
+    </script>
 </body>
 </html>
