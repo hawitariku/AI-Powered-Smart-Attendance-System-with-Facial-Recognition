@@ -12,10 +12,17 @@ from app.auth import authenticate_user, create_access_token, get_current_user, h
 import cv2
 import threading
 import time
+import base64
+import io
+from PIL import Image
+from app.camera import RemoteFaceProcessor
 
 # Global variable to control attendance system
 attendance_system_running = False
 attendance_system_thread = None
+
+# Store session processors per user
+remote_face_sessions = {}
 
 
 def run_attendance_system():
@@ -60,6 +67,17 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+@app.get("/me")
+def get_me(current_user: User = Depends(get_current_user)):
+    """Return the current user's info for the dashboard"""
+    return {
+        "id": current_user.id,
+        "name": current_user.name,
+        "email": current_user.email,
+        "role": current_user.role
+    }
+
+
 @app.post("/register")
 def register(name: str = Form(...), email: str = Form(...), password: str = Form(...), current_user: User = Depends(get_current_user)):
     """Register a new user - requires authentication and permission"""
@@ -84,9 +102,8 @@ def register(name: str = Form(...), email: str = Form(...), password: str = Form
 
 
 @app.post("/enroll/{user_id}")
-def enroll_face(user_id: int, current_user: User = Depends(get_current_user)):
-    """Enroll face for a user - requires authentication and permission"""
-    # Check if current user has permission to enroll faces
+async def enroll_face(user_id: int, current_user: User = Depends(get_current_user)):
+    """Enroll face with liveness verification"""
     if not has_permission(current_user, "enroll_face"):
         raise HTTPException(status_code=403, detail="Not authorized to enroll faces")
     
@@ -98,127 +115,174 @@ def enroll_face(user_id: int, current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="User not found")
     db.close()
     
-    # Initialize MTCNN for face detection
-    from facenet_pytorch import MTCNN
-    mtcnn = MTCNN(image_size=160, margin=20)
+    # Stop any running attendance system
+    global attendance_system_running
+    if attendance_system_running:
+        attendance_system_running = False
+        time.sleep(1)
     
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        return {"error": "Could not open camera"}
+    # Start enrollment in a separate thread
+    from app.camera import recognize_and_mark
+    import threading
     
-    # Allow camera to warm up
-    import time
-    time.sleep(2)
+    enrollment_thread = threading.Thread(target=recognize_and_mark, args=(user_id,))
+    enrollment_thread.daemon = True
+    enrollment_thread.start()
     
-    # Try multiple frames to get multiple samples
-    embeddings = []
-    for attempt in range(30):  # Try for 30 frames
-        ret, frame = cap.read()
-        if not ret:
-            continue
-            
-        # Try to detect face
-        try:
-            face = mtcnn(frame)
-            if face is not None:
-                # Face detected, now get embedding
-                from app.face_utils import get_embedding
-                emb = get_embedding(frame)
-                if emb is not None:
-                    embeddings.append(emb)
-                    # Only need 3 good samples
-                    if len(embeddings) >= 3:
-                        break
-        except Exception as e:
-            pass  # Continue trying
-            
-        time.sleep(0.1)  # Small delay between frames
-    
-    cap.release()
-    
-    if len(embeddings) == 0:
-        return {"error": "No face detected after multiple attempts"}
-    
-    # Use average of embeddings if multiple were captured
-    if len(embeddings) > 1:
-        final_embedding = np.mean(embeddings, axis=0)
-    else:
-        final_embedding = embeddings[0]
-    
-    db = SessionLocal()
-    
-    # Save embedding
-    record = FaceEmbedding(user_id=user_id, embedding=','.join(map(str, final_embedding.tolist())))
-    db.add(record)
-    
-    # Automatically mark attendance when face is enrolled
-    import datetime
-    today = datetime.date.today()
-    time_now = datetime.datetime.now().time()
-    attendance_record = Attendance(user_id=user_id, date=today, time=time_now, status="Present")
-    db.add(attendance_record)
-    
-    db.commit()
-    db.close()
-    
-    return {"message": f"Face enrolled successfully with {len(embeddings)} sample(s) and attendance marked"}
+    return {"status": "started", "message": "Secured Enrollment Session Started..."}
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request, current_user: User = Depends(get_current_user)):
-    """Dashboard endpoint - requires authentication and permission"""
-    # Check if current user has permission to view dashboard
-    if not has_permission(current_user, "view_dashboard"):
-        raise HTTPException(status_code=403, detail="Not authorized to view dashboard")
+async def dashboard(request: Request):
+    """Dashboard endpoint"""
+    return templates.TemplateResponse("dashboard.html", {"request": request})
+
+
+
+@app.get("/login_page", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/debug-logs")
+def get_debug_logs(current_user: User = Depends(get_current_user)):
+    """Fetch debug logs for the web console"""
+    log_file = "debug_live.log"
+    import os
+    if os.path.exists(log_file):
+        with open(log_file, "r") as f:
+            return {"logs": f.read()}
+    return {"logs": "Waiting for system to start..."}
+
+@app.get("/users")
+def list_users(current_user: User = Depends(get_current_user)):
+    """List all users for the dashboard"""
+    if not has_permission(current_user, "view_users"):
+        raise HTTPException(status_code=403, detail="Not authorized to view users")
+    db = SessionLocal()
+    users = db.query(User).all()
+    user_data = []
+    from app.models import FaceEmbedding
+    for u in users:
+        has_face = db.query(FaceEmbedding).filter(FaceEmbedding.user_id == u.id).first() is not None
+        user_data.append({
+            "id": u.id,
+            "name": u.name,
+            "email": u.email,
+            "role": u.role,
+            "has_face": has_face
+        })
+    db.close()
+    return user_data
+
+@app.get("/attendance-data")
+def get_attendance_data(current_user: User = Depends(get_current_user)):
+    """Get all attendance records for the dashboard"""
+    if not has_permission(current_user, "view_attendance"):
+        raise HTTPException(status_code=403, detail="Not authorized to view attendance")
     
     db = SessionLocal()
-    records = db.query(Attendance).all()
-    users = db.query(User).all()
+    
+    # Filter records based on role
+    if current_user.role in ["employee", "user"]:
+        records = db.query(Attendance).filter(Attendance.user_id == current_user.id).all()
+    else:
+        records = db.query(Attendance).all()
+    data = []
+    for r in records:
+        user = db.query(User).filter(User.id == r.user_id).first()
+        data.append({
+            "user_id": r.user_id,
+            "name": user.name if user else "Unknown",
+            "date": str(r.date),
+            "time": str(r.time),
+            "status": r.status
+        })
     db.close()
-    return templates.TemplateResponse("dashboard.html", {"request": request, "records": records, "users": users})
-
+    return data
 
 @app.post("/start_attendance")
 def start_attendance(current_user: User = Depends(get_current_user)):
-    """Start attendance system - requires authentication and permission"""
-    # Check if current user has permission to start attendance system
-    if not has_permission(current_user, "view_attendance"):
-        raise HTTPException(status_code=403, detail="Not authorized to start attendance system")
+    """Start attendance system"""
+    if not has_permission(current_user, "manage_system"):
+        raise HTTPException(status_code=403, detail="Not authorized to manage system")
     
     global attendance_system_running, attendance_system_thread
-    
-    # Check if attendance system is already running
     if attendance_system_running:
         return {"message": "Attendance system is already running"}
-    
-    # Start attendance system in a separate thread
     attendance_system_running = True
     attendance_system_thread = threading.Thread(target=run_attendance_system)
     attendance_system_thread.daemon = True
     attendance_system_thread.start()
-    
-    return {"message": "Attendance system started successfully. Position faces in front of the camera to mark attendance."}
-
+    return {"message": "Attendance system started successfully."}
 
 @app.post("/stop_attendance")
 def stop_attendance(current_user: User = Depends(get_current_user)):
-    """Stop attendance system - requires authentication and permission"""
-    # Check if current user has permission to stop attendance system
-    if not has_permission(current_user, "view_attendance"):
-        raise HTTPException(status_code=403, detail="Not authorized to stop attendance system")
+    """Stop attendance system"""
+    if not has_permission(current_user, "manage_system"):
+        raise HTTPException(status_code=403, detail="Not authorized to manage system")
     
-    global attendance_system_running, attendance_system_thread
-    
-    # Check if attendance system is running
-    if not attendance_system_running:
-        return {"message": "Attendance system is not running"}
-    
-    # Stop attendance system
+    global attendance_system_running
     attendance_system_running = False
-    
-    # Note: In a real implementation, we would need to properly terminate the camera capture
-    # For now, we'll just mark it as stopped
     return {"message": "Attendance system stopped successfully"}
+
+@app.get("/face-status")
+def get_face_status(current_user: User = Depends(get_current_user)):
+    """Check if the current user has a face enrolled"""
+    db = SessionLocal()
+    has_face = db.query(FaceEmbedding).filter(FaceEmbedding.user_id == current_user.id).first() is not None
+    db.close()
+    return {"has_face": has_face}
+
+
+@app.post("/reset-face")
+def reset_face(user_id: int, current_user: User = Depends(get_current_user)):
+    """Admin/Manager tool to clear a user's face record"""
+    if not has_permission(current_user, "manage_system"):
+        raise HTTPException(status_code=403, detail="Not authorized to reset faces")
+    
+    db = SessionLocal()
+    db.query(FaceEmbedding).filter(FaceEmbedding.user_id == user_id).delete()
+    db.commit()
+    db.close()
+    return {"message": f"Biometric data for user {user_id} has been cleared."}
+
+
+@app.post("/process-remote-frame")
+async def process_remote_frame(request: Request, current_user: User = Depends(get_current_user)):
+    """Process a single frame from the browser for remote check-in"""
+    data = await request.json()
+    image_data = data.get("image")
+    mode = data.get("mode", "ATTEND") # "ENROLL" or "ATTEND"
+    
+    if not image_data:
+        raise HTTPException(status_code=400, detail="Missing image data")
+
+    # Hardening: Prevent employees from overwriting enrolled face
+    if mode == "ENROLL" and current_user.role in ["employee", "user"]:
+        db = SessionLocal()
+        existing = db.query(FaceEmbedding).filter(FaceEmbedding.user_id == current_user.id).first()
+        db.close()
+        if existing:
+            raise HTTPException(status_code=403, detail="Biometrics already enrolled. Contact Admin for reset.")
+
+    # Get or create processor for this user
+    if current_user.id not in remote_face_sessions:
+        remote_face_sessions[current_user.id] = RemoteFaceProcessor()
+    
+    processor = remote_face_sessions[current_user.id]
+    
+    # Decode base64 image
+    try:
+        header, encoded = image_data.split(",", 1)
+        image_bytes = base64.b64decode(encoded)
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        frame = np.array(img)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid image format: {e}")
+
+    # Process
+    result = processor.process_frame(frame, current_user.id, mode=mode)
+    return result
 
 
 if __name__ == "__main__":
