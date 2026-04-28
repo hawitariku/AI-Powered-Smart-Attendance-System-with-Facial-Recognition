@@ -1,0 +1,118 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+attendance.db
+
+# Logs
+*.log
+debug_live.log
+enrollment_trace.log
+
+# Cache
+.cache/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm
+.idea/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+$null
+
+# Face images (if storing locally)
+faces/
+*.jpg
+*.jpeg
+*.png
+!static/*.png
+!static/*.jpg
+
+# Security reports
+security_report.txt
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Model weights (if downloading separately)
+*.pth
+*.pt
+models/
+
+# Test outputs
+test_output/
+debug_*.jpg
+*_frame_*.jpg
+
+# Unnecessary documentation files (guides, checklists)
+PUSH_NOW.md
+GITHUB_PUSH_GUIDE.md
+PRE_PUSH_CHECKLIST.md
+FILES_CREATED_SUMMARY.md
+SIMPLE_PUSH.md
+CONTRIBUTING.md
+SECURITY.md
+CHANGELOG.md
+docs/

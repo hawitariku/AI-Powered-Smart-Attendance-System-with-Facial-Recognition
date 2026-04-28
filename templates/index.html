@@ -1,312 +1,228 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>Smart Attendance System</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Smart Attendance System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --error: #ef4444;
+            --success: #22c55e;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1.5rem;
         }
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+        .login-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
-        .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        h1 {
-            color: #333;
+
+        .login-header {
             text-align: center;
+            margin-bottom: 2rem;
         }
-        h2 {
-            color: #555;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
+
+        .login-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem 0;
+            color: var(--primary);
         }
-        input, button {
-            padding: 10px;
-            margin: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+
+        .login-header p {
+            color: var(--text-light);
+            font-size: 0.875rem;
+            margin: 0;
         }
-        button {
-            background-color: #007bff;
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background-color: #ffffff;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--primary);
             color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
             cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 0.5rem;
         }
-        button:hover {
-            background-color: #0056b3;
+
+        .btn-login:hover {
+            background-color: var(--primary-hover);
         }
+
+        .btn-login:disabled {
+            background-color: var(--text-light);
+            cursor: not-allowed;
+        }
+
         .result {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .nav {
+            margin-top: 1.25rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            display: none;
             text-align: center;
-            margin-top: 20px;
         }
-        .nav a {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #28a745;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin: 0 10px;
+
+        .result.success {
+            background-color: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
         }
-        .nav a:hover {
-            background-color: #218838;
+
+        .result.error {
+            background-color: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
         }
-        .login-section {
+
+        .footer-text {
             text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #f8f9fa;
-        }
-        .login-section input {
-            width: 200px;
+            margin-top: 1.5rem;
+            font-size: 0.75rem;
+            color: var(--text-light);
         }
     </style>
 </head>
+
 <body>
-    <div class="container">
-        <h1> facial recognition attendance system</h1>
-        
-        <div class="login-section">
-            <h2>Login</h2>
-            <form id="loginForm">
-                <input type="text" id="loginEmail" placeholder="Email" required>
-                <input type="password" id="loginPassword" placeholder="Password" required>
-                <button type="submit">Login</button>
-            </form>
-            <div id="loginResult" class="result"></div>
+    <div class="login-card">
+        <div class="login-header">
+            <h1>facial recognition attendance system</h1>
         </div>
-        
-        <div class="section">
-            <h2>Register New User</h2>
-            <form id="registerForm">
-                <input type="text" id="userName" placeholder="Enter user name" required>
-                <input type="email" id="userEmail" placeholder="Enter user email" required>
-                <input type="password" id="userPassword" placeholder="Enter password" required>
-                <button type="submit">Register User</button>
-            </form>
-            <div id="registerResult" class="result"></div>
-        </div>
-        
-        <div class="section">
-            <h2>Enroll Face</h2>
-            <form id="enrollForm">
-                <input type="number" id="userId" placeholder="Enter User ID" required>
-                <button type="submit">Enroll Face</button>
-            </form>
-            <div id="enrollResult" class="result"></div>
-        </div>
-        
-        <div class="section">
-            <h2>Start Attendance System</h2>
-            <button onclick="startAttendance()">Start Real-time Attendance</button>
-            <button onclick="stopAttendance()" style="background-color: #f44336; margin-left: 10px;">Stop Attendance System</button>
-            <div id="attendanceResult" class="result"></div>
-        </div>
-        
-        <div class="section">
-            <h2>View Attendance Records</h2>
-            <button onclick="location.href='/dashboard'">Go to Dashboard</button>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="loginEmail">Email Address</label>
+                <input type="email" id="loginEmail" class="form-control" placeholder="Email" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" class="form-control" placeholder="Password" required>
+            </div>
+            <button type="submit" id="loginBtn" class="btn-login">Login</button>
+        </form>
+
+        <div id="loginResult" class="result"></div>
+
+        <div class="footer-text">
+            &copy; 2026 Smart Attendance System
         </div>
     </div>
 
     <script>
-        let authToken = null;
-        
-        // Login functionality
-        document.getElementById('loginForm').onsubmit = function(e) {
+        // Check if already logged in
+        window.onload = function () {
+            if (localStorage.getItem('authToken')) {
+                window.location.href = '/dashboard';
+            }
+        };
+
+        document.getElementById('loginForm').onsubmit = async function (e) {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
-            
-            const formData = new FormData();
+            const btn = document.getElementById('loginBtn');
+            const resultDiv = document.getElementById('loginResult');
+
+            btn.disabled = true;
+            btn.innerText = 'Signing in...';
+            resultDiv.style.display = 'none';
+
+            const formData = new URLSearchParams();
             formData.append('username', email);
             formData.append('password', password);
-            
-            fetch('/token', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.access_token) {
-                    authToken = data.access_token;
-                    localStorage.setItem('authToken', authToken);
-                    const resultDiv = document.getElementById('loginResult');
-                    resultDiv.style.display = 'block';
+
+            try {
+                const response = await fetch('/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.access_token) {
+                    localStorage.setItem('authToken', data.access_token);
                     resultDiv.className = 'result success';
-                    resultDiv.innerHTML = '<strong>Success:</strong> Login successful!';
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = '<strong>Success!</strong> Redirecting to dashboard...';
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
                 } else {
-                    throw new Error(data.detail || 'Login failed');
+                    throw new Error(data.detail || 'Invalid email or password');
                 }
-            })
-            .catch(error => {
-                const resultDiv = document.getElementById('loginResult');
-                resultDiv.style.display = 'block';
+            } catch (error) {
                 resultDiv.className = 'result error';
-                resultDiv.innerHTML = '<strong>Error:</strong> ' + error;
-            });
-        };
-
-        // Load token from localStorage if available
-        window.onload = function() {
-            authToken = localStorage.getItem('authToken');
-            if (authToken) {
-                const resultDiv = document.getElementById('loginResult');
                 resultDiv.style.display = 'block';
-                resultDiv.className = 'result success';
-                resultDiv.innerHTML = '<strong>Success:</strong> You are logged in!';
+                resultDiv.innerHTML = '<strong>Error:</strong> ' + error.message;
+                btn.disabled = false;
+                btn.innerText = 'Login';
             }
         };
-
-        document.getElementById('registerForm').onsubmit = function(e) {
-            e.preventDefault();
-            if (!authToken) {
-                alert('Please login first');
-                return;
-            }
-            
-            const name = document.getElementById('userName').value;
-            const email = document.getElementById('userEmail').value;
-            const password = document.getElementById('userPassword').value;
-            
-            const formData = new FormData();
-            formData.append('name', name);
-            formData.append('email', email);
-            formData.append('password', password);
-            
-            fetch('/register', {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + authToken
-                },
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                const resultDiv = document.getElementById('registerResult');
-                resultDiv.style.display = 'block';
-                resultDiv.className = 'result success';
-                resultDiv.innerHTML = '<strong>Success:</strong> ' + data.message;
-            })
-            .catch(error => {
-                const resultDiv = document.getElementById('registerResult');
-                resultDiv.style.display = 'block';
-                resultDiv.className = 'result error';
-                resultDiv.innerHTML = '<strong>Error:</strong> ' + error;
-            });
-        };
-
-        document.getElementById('enrollForm').onsubmit = function(e) {
-            e.preventDefault();
-            if (!authToken) {
-                alert('Please login first');
-                return;
-            }
-            
-            const userId = document.getElementById('userId').value;
-            
-            fetch('/enroll/' + userId, {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + authToken
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                const resultDiv = document.getElementById('enrollResult');
-                resultDiv.style.display = 'block';
-                resultDiv.className = 'result success';
-                resultDiv.innerHTML = '<strong>Success:</strong> ' + data.message;
-            })
-            .catch(error => {
-                const resultDiv = document.getElementById('enrollResult');
-                resultDiv.style.display = 'block';
-                resultDiv.className = 'result error';
-                resultDiv.innerHTML = '<strong>Error:</strong> ' + error;
-            });
-        };
-
-        function startAttendance() {
-            if (!authToken) {
-                alert('Please login first');
-                return;
-            }
-            
-            fetch('/start_attendance', {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + authToken
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                const resultDiv = document.getElementById('attendanceResult');
-                resultDiv.style.display = 'block';
-                resultDiv.className = 'result success';
-                resultDiv.innerHTML = '<strong>Attendance System Started:</strong> ' + data.message + '<br><br>' +
-                    '<strong>Important:</strong> The system is now running in the background. To stop it, click the "Stop Attendance System" button or restart the server.';
-            })
-            .catch(error => {
-                const resultDiv = document.getElementById('attendanceResult');
-                resultDiv.style.display = 'block';
-                resultDiv.className = 'result error';
-                resultDiv.innerHTML = '<strong>Error:</strong> ' + error;
-            });
-        }
-        
-        function stopAttendance() {
-            if (!authToken) {
-                alert('Please login first');
-                return;
-            }
-            
-            fetch('/stop_attendance', {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + authToken
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                const resultDiv = document.getElementById('attendanceResult');
-                resultDiv.style.display = 'block';
-                resultDiv.className = 'result success';
-                resultDiv.innerHTML = '<strong>Attendance System Stopped:</strong> ' + data.message;
-            })
-            .catch(error => {
-                const resultDiv = document.getElementById('attendanceResult');
-                resultDiv.style.display = 'block';
-                resultDiv.className = 'result error';
-                resultDiv.innerHTML = '<strong>Error:</strong> ' + error;
-            });
-        }
     </script>
 </body>
+
 </html>

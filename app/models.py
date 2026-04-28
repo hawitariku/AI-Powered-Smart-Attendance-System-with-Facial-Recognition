@@ -37,3 +37,9 @@ class RolePermission(Base):
     id = Column(Integer, primary_key=True, index=True)
     role = Column(String)  # admin, teacher, user
     permission = Column(String)  # register_user, enroll_face, view_attendance, etc.
+
+class SystemSetting(Base):
+    __tablename__ = 'system_settings'
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, index=True)
+    value = Column(String)

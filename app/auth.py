@@ -1,7 +1,7 @@
 import bcrypt
 from datetime import datetime, timedelta
 import jwt
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.models import User
@@ -47,7 +47,7 @@ def verify_token(token: str):
             detail="Token has expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except jwt.JWTError:
+    except jwt.InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
@@ -55,8 +55,23 @@ def verify_token(token: str):
         )
 
 
-def get_current_user(token: str):
+security = HTTPBearer()
+
+import os
+from dotenv import load_dotenv
+from cryptography.fernet import Fernet
+
+load_dotenv()
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
+if not ENCRYPTION_KEY:
+    # Generate a key if it doesn't exist for development
+    ENCRYPTION_KEY = Fernet.generate_key().decode()
+    with open(".env", "a") as f:
+        f.write(f"\nENCRYPTION_KEY={ENCRYPTION_KEY}")
+
+def get_current_user(auth: HTTPAuthorizationCredentials = Depends(security)):
     """Get the current user from the token"""
+    token = auth.credentials
     payload = verify_token(token)
     user_id: int = payload.get("user_id")
     if user_id is None:
@@ -94,14 +109,16 @@ def has_permission(user, permission: str) -> bool:
     role_permissions = {
         "admin": [
             "register_user", "enroll_face", "view_attendance", 
-            "view_dashboard", "manage_users", "system_settings"
+            "view_dashboard", "view_users", "manage_system"
         ],
-        "teacher": [
-            "register_user", "enroll_face", "view_attendance", 
-            "view_dashboard"
+        "manager": [
+            "enroll_face", "view_attendance", "view_dashboard", "view_users"
         ],
-        "user": [
-            "view_dashboard"
+        "employee": [
+            "view_dashboard", "view_attendance"
+        ],
+        "user": [  # Backward compatibility for existing DB entries
+            "view_dashboard", "view_attendance"
         ]
     }
     

@@ -531,6 +531,27 @@
                 </div>
             </div>
 
+            <div class="card" id="officeLocationCard">
+                <div class="card-header">
+                    <h2>📍 Office Location Settings</h2>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <p style="margin-bottom: 1rem; color: var(--text-light);">
+                        Configure the office IP address to restrict remote attendance to your physical location.
+                    </p>
+                    <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+                        <button onclick="registerOfficeIP()" class="btn btn-primary">🔒 Register This Network as
+                            Office</button>
+                        <button onclick="checkOfficeIP()" class="btn btn-outline">🔍 Check Current IP</button>
+                    </div>
+                    <div id="officeIPStatus"
+                        style="padding: 1rem; background: var(--bg); border-radius: 0.5rem; border-left: 4px solid var(--info);">
+                        <strong>Status:</strong> <span id="ipStatusText">Not configured</span><br>
+                        <strong>Registered Office IP:</strong> <span id="registeredIP">None</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="card" id="userStatusCard">
                 <div class="card-header">
                     <h2>📋 User Enrollment Status</h2>
@@ -703,6 +724,7 @@
                         document.getElementById('adminFunctionsCard').classList.add('hidden');
                         document.getElementById('userStatusCard').classList.add('hidden');
                         document.getElementById('liveLogsCard').classList.add('hidden');
+                        document.getElementById('officeLocationCard').classList.add('hidden');
                     }
 
                     // Manager: Can enroll and see users, but not register or control system
@@ -895,6 +917,35 @@
                         document.getElementById('systemStatus').className = 'badge badge-warning';
                     } catch (err) {
                         showResult('actionResult', err.message, 'error');
+                    }
+                }
+
+                async function registerOfficeIP() {
+                    try {
+                        const data = await api('/set-office-ip', 'POST');
+                        document.getElementById('ipStatusText').innerText = '✅ Active';
+                        document.getElementById('registeredIP').innerText = data.message.split(': ')[1];
+                        document.getElementById('officeIPStatus').style.borderLeftColor = 'var(--success)';
+                        alert('Office IP registered successfully!\n\n' + data.message);
+                    } catch (err) {
+                        alert('Failed to register office IP: ' + err.message);
+                    }
+                }
+
+                async function checkOfficeIP() {
+                    try {
+                        const data = await api('/get-office-ip');
+                        if (data.is_set) {
+                            document.getElementById('ipStatusText').innerText = '✅ Active';
+                            document.getElementById('registeredIP').innerText = data.office_ip;
+                            document.getElementById('officeIPStatus').style.borderLeftColor = 'var(--success)';
+                        } else {
+                            document.getElementById('ipStatusText').innerText = '⚠️ Not configured';
+                            document.getElementById('registeredIP').innerText = 'None';
+                            document.getElementById('officeIPStatus').style.borderLeftColor = 'var(--warning)';
+                        }
+                    } catch (err) {
+                        console.error('Failed to check office IP:', err);
                     }
                 }
 
