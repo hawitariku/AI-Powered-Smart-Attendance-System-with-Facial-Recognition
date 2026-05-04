@@ -88,6 +88,9 @@ faces/
 *.png
 !static/*.png
 !static/*.jpg
+!screenshots/*.png
+!screenshots/*.jpg
+!screenshots/*.jpeg
 
 # Security reports
 security_report.txt

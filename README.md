@@ -46,6 +46,21 @@ Access at: **http://127.0.0.1:8002**
 
 ---
 
+## Screenshots
+
+### Login Page
+![Login](screenshots/login.png)
+
+### Admin Dashboard
+![Dashboard](screenshots/Admin%20dashboard.png)
+
+### Face Enrollment
+![Enrollment 1](screenshots/enrollment1.jpg)
+![Enrollment 2](screenshots/enrollment2.jpg)
+![Enrollment 3](screenshots/enrollment3.jpg)
+
+---
+
 ## Configuration
 
 Create `.env` file with your keys:

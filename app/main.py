@@ -6,7 +6,7 @@ import numpy as np
 
 
 from app.database import Base, engine, SessionLocal
-from app.models import User, FaceEmbedding, Attendance, SystemSetting
+from app.models import User, FaceEmbedding, Attendance
 from app.face_utils import get_embedding
 from app.auth import authenticate_user, create_access_token, get_current_user, has_permission, get_password_hash
 import cv2
@@ -247,44 +247,6 @@ def reset_face(user_id: int, current_user: User = Depends(get_current_user)):
     return {"message": f"Biometric data for user {user_id} has been cleared."}
 
 
-@app.post("/set-office-ip")
-def set_office_ip(request: Request, current_user: User = Depends(get_current_user)):
-    """Admin tool to register the current network as the office location"""
-    if not has_permission(current_user, "manage_system"):
-        raise HTTPException(status_code=403, detail="Not authorized to manage system settings")
-    
-    # Get the client's IP address
-    client_ip = request.client.host
-    
-    # Save to database
-    db = SessionLocal()
-    setting = db.query(SystemSetting).filter(SystemSetting.key == "office_ip").first()
-    if setting:
-        setting.value = client_ip
-    else:
-        setting = SystemSetting(key="office_ip", value=client_ip)
-        db.add(setting)
-    db.commit()
-    db.close()
-    
-    return {"message": f"Office IP registered as: {client_ip}"}
-
-
-@app.get("/get-office-ip")
-def get_office_ip(current_user: User = Depends(get_current_user)):
-    """Get the registered office IP"""
-    if not has_permission(current_user, "manage_system"):
-        raise HTTPException(status_code=403, detail="Not authorized to view system settings")
-    
-    db = SessionLocal()
-    setting = db.query(SystemSetting).filter(SystemSetting.key == "office_ip").first()
-    db.close()
-    
-    if setting:
-        return {"office_ip": setting.value, "is_set": True}
-    return {"office_ip": None, "is_set": False}
-
-
 @app.post("/process-remote-frame")
 async def process_remote_frame(request: Request, current_user: User = Depends(get_current_user)):
     """Process a single frame from the browser for remote check-in"""
@@ -302,22 +264,6 @@ async def process_remote_frame(request: Request, current_user: User = Depends(ge
         db.close()
         if existing:
             raise HTTPException(status_code=403, detail="Biometrics already enrolled. Contact Admin for reset.")
-
-    # IP Geofencing: Verify location for attendance marking
-    if mode == "ATTEND":
-        client_ip = request.client.host
-        db = SessionLocal()
-        office_ip_setting = db.query(SystemSetting).filter(SystemSetting.key == "office_ip").first()
-        db.close()
-        
-        if office_ip_setting and office_ip_setting.value:
-            if client_ip != office_ip_setting.value:
-                return {
-                    "success": False,
-                    "instruction": f"🚫 ACCESS DENIED: Outside office network.\nYour IP: {client_ip}\nOffice IP: {office_ip_setting.value}",
-                    "progress": 0,
-                    "status": "BLOCKED"
-                }
 
     # Get or create processor for this user
     if current_user.id not in remote_face_sessions:
